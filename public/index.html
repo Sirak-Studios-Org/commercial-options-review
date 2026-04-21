@@ -315,7 +315,7 @@
   </section>
   <aside class="sidebar">
     <h2>Property Legend</h2>
-    <div class="sub" id="legendSub">Ordered from lowest to highest monthly rent to make the decision set easier to scan commercially.</div>
+    <div class="sub" id="legendSub">Ordered from highest to lowest monthly rent to make the decision set easier to scan commercially.</div>
     <div id="propertyList" class="property-list"></div>
   </aside>
 </div>
@@ -410,8 +410,11 @@
 
     clearMarket();
 
+    const rentValue = (s) => Number(String(s ?? '').replace(/[^0-9.]/g, '')) || 0;
+    const sorted = cfg.records.slice().sort((a, b) => rentValue(b.monthly_rent) - rentValue(a.monthly_rent));
+
     const bounds = [];
-    cfg.records.forEach((r, idx) => {
+    sorted.forEach((r, idx) => {
       const icon = L.divIcon({
         className: '',
         html: `<div class="marker-pin">${idx + 1}</div>`,
