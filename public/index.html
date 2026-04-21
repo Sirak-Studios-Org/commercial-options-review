@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Commercial Options Review</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#e7e7e7;
+    --panel:#0a0a0a;
+    --ink:#111111;
+    --muted:#666;
+    --muted2:#8a8a8a;
+    --light:#fff;
+    --accent:#f04a32;
+    --line:rgba(255,255,255,.12);
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; background:var(--bg); color:var(--ink); font-family:'Roboto', Arial, sans-serif; }
+  body { overflow:hidden; }
+  .app {
+    display:grid;
+    grid-template-columns:minmax(460px,60vw) minmax(360px,40vw);
+    height:100vh;
+  }
+  .main {
+    display:flex;
+    flex-direction:column;
+    padding:26px 26px 22px;
+    gap:18px;
+    min-width:0;
+  }
+  .eyebrow {
+    font-family:'Anton', Impact, sans-serif;
+    font-size:28px;
+    line-height:1;
+    letter-spacing:.02em;
+    text-transform:uppercase;
+  }
+  .title {
+    margin:0;
+    font-family:'Anton', Impact, sans-serif;
+    font-size:72px;
+    line-height:.95;
+    letter-spacing:.01em;
+    text-transform:uppercase;
+  }
+  .subtitle {
+    margin-top:8px;
+    color:#5e5e5e;
+    font-size:15px;
+    max-width:820px;
+    line-height:1.45;
+  }
+  .tabs {
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+  }
+  .tab {
+    border:none;
+    border-radius:999px;
+    padding:12px 18px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    background:rgba(0,0,0,.08);
+    color:#111;
+    transition:all .18s ease;
+  }
+  .tab.active {
+    background:#111;
+    color:#fff;
+  }
+  .map-shell {
+    position:relative;
+    flex:1;
+    background:#dcdcdc;
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 16px 40px rgba(0,0,0,.12);
+    min-height:0;
+  }
+  #map { height:100%; width:100%; }
+  .map-overlay {
+    position:absolute;
+    top:18px;
+    left:18px;
+    z-index:1000;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(10px);
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:18px;
+    padding:14px 16px;
+    max-width:380px;
+    box-shadow:0 10px 24px rgba(0,0,0,.10);
+  }
+  .map-overlay .kicker {
+    font-family:'Anton', Impact, sans-serif;
+    font-size:18px;
+    text-transform:uppercase;
+    line-height:1;
+    margin-bottom:8px;
+  }
+  .map-overlay p {
+    margin:0;
+    font-size:13px;
+    line-height:1.45;
+    color:#505050;
+  }
+  .sidebar {
+    background:var(--panel);
+    color:#fff;
+    padding:28px 24px;
+    overflow:auto;
+  }
+  .sidebar h2 {
+    margin:0 0 8px 0;
+    font-family:'Anton', Impact, sans-serif;
+    font-size:34px;
+    line-height:1;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+  }
+  .sidebar .sub {
+    font-size:13px;
+    color:#b8b8b8;
+    margin-bottom:18px;
+    line-height:1.45;
+  }
+  .property-list {
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .item {
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:14px 14px 12px;
+    background:rgba(255,255,255,.02);
+    cursor:pointer;
+    transition:all .18s ease;
+  }
+  .item:hover { background:rgba(255,255,255,.05); }
+  .item.active {
+    border-color:rgba(240,74,50,.65);
+    background:rgba(240,74,50,.08);
+  }
+  .item-top {
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .badge {
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    flex:0 0 28px;
+    background:var(--accent);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:700;
+    box-shadow:0 4px 12px rgba(240,74,50,.35);
+  }
+  .item-name {
+    font-size:16px;
+    font-weight:700;
+    margin-bottom:4px;
+    line-height:1.25;
+  }
+  .meta {
+    font-size:13px;
+    color:#e7e7e7;
+    line-height:1.4;
+  }
+  .notes {
+    margin-top:8px;
+    font-size:12px;
+    color:#a9a9a9;
+    line-height:1.45;
+  }
+  .leaflet-container { font:inherit; background:#d8dfe5; }
+  .leaflet-control-attribution {
+    font-size:11px;
+    background:rgba(255,255,255,.85)!important;
+  }
+  .marker-pin {
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    background:var(--accent);
+    border:3px solid #fff;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:700;
+    box-shadow:0 8px 18px rgba(0,0,0,.22);
+  }
+  .leaflet-popup-content-wrapper {
+    border-radius:18px;
+    box-shadow:0 18px 44px rgba(0,0,0,.22);
+  }
+  .leaflet-popup-content {
+    margin:16px 18px;
+    min-width:320px;
+    max-width:360px;
+  }
+  .popup-title {
+    font-family:'Anton', Impact, sans-serif;
+    font-size:28px;
+    line-height:1;
+    letter-spacing:.01em;
+    margin:0 0 12px 0;
+    color:#111;
+    text-transform:uppercase;
+  }
+  .popup-row {
+    font-size:14px;
+    color:#2e2e2e;
+    line-height:1.45;
+    margin:4px 0;
+  }
+  .popup-row b { color:#111; }
+  .popup-link {
+    display:inline-block;
+    margin-top:12px;
+    color:#0a62c9;
+    font-weight:700;
+    text-decoration:none;
+  }
+  .popup-link:hover { text-decoration:underline; }
+  @media (max-width:1100px) {
+    body { overflow:auto; }
+    .app { grid-template-columns:1fr; height:auto; }
+    .main { min-height:70vh; }
+    .sidebar { min-height:30vh; }
+    .title { font-size:56px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="main">
+    <div>
+      <div class="eyebrow">Commercial Property Review</div>
+      <h1 class="title" id="pageTitle">Miami Commercial Options</h1>
+      <div class="subtitle" id="pageSubtitle">A client-facing comparison of viable Miami spaces for studio, warehouse, showroom, and hybrid operations. Click any property on the right or any map pin to review the full summary.</div>
+      <div class="tabs">
+        <button class="tab active" id="tab-miami">Miami</button>
+        <button class="tab" id="tab-atlanta">Atlanta</button>
+      </div>
+    </div>
+    <div class="map-shell">
+      <div class="map-overlay">
+        <div class="kicker" id="overlayKicker">South Florida Property Map</div>
+        <p id="overlayText">Each pin reflects one property from the reviewed spreadsheet. Popups show interior square footage, monthly rent, description, notes, and direct listing access.</p>
+      </div>
+      <div id="map"></div>
+    </div>
+  </section>
+  <aside class="sidebar">
+    <h2>Property Legend</h2>
+    <div class="sub" id="legendSub">Ordered from lowest to highest monthly rent to make the decision set easier to scan commercially.</div>
+    <div id="propertyList" class="property-list"></div>
+  </aside>
+</div>
+
+<script id="miami-data" type="application/json">[{"property": "5525 NW 7th Ave", "type": "Office/Flex", "int_sqft": "3300", "monthly_rent": "$5,225", "description": "5 offices + open space, freestanding", "notes": "kitchen/break room, gated parking", "availability": "Now", "ceiling": "10'", "buildout": "Full build-out, retail, warehouse", "doors": "no drive-in", "parking": "8 spaces gated", "url": "https://www.loopnet.com/Listing/5525-NW-7th-Ave-Miami-FL/38555123/", "lat": 25.82534, "lon": -80.21055}, {"property": "2223 NW 26th Ave", "type": "Industrial", "int_sqft": "4080", "monthly_rent": "$5,780", "description": "3 offices + open space, freestanding", "notes": "Best Miami MVP ops base, 3 bathrooms", "availability": "Now", "ceiling": "10'-12'?", "buildout": "Full build-out, retail, warehouse", "doors": "no drive-in", "parking": "8 spaces gated", "url": "https://www.loopnet.com/Listing/2223-NW-26th-Ave-Miami-FL/26203473/", "lat": 25.79894, "lon": -80.23589}, {"property": "591 NW 71st St", "type": "Flex/Warehouse", "int_sqft": "4000", "monthly_rent": "$6,000", "description": "mezanine, warehouse, offices", "notes": "Super appealing, but far north", "availability": "Now", "ceiling": "16'", "buildout": "full build out w/ shower and kitchenette", "doors": "2 drive-ins", "parking": "10 spaces", "url": "", "lat": 25.83983, "lon": -80.20712}, {"property": "995 NW 72nd St", "type": "Industrial/Flex", "int_sqft": "4000", "monthly_rent": "$6,667", "description": "big open space, office, courtyard", "notes": "very appealing, but far north", "availability": "30 Days", "ceiling": "16'", "buildout": "full build out w/shower, polished look", "doors": "1 drive-in; 1 exterior dock", "parking": "20 spaces gated", "url": "https://www.loopnet.com/Listing/995-NW-72nd-St-Miami-FL/39226702/", "lat": 25.84081, "lon": -80.21137}, {"property": "6310 NE 2nd Ave", "type": "Retail/Warehouse", "int_sqft": "4900", "monthly_rent": "$7,554", "description": "office, showroom", "notes": "nice open space, corner lot", "availability": "Now", "ceiling": "10'-12'?", "buildout": "Full build-out", "doors": "2 drive-ins", "parking": "10 spaces", "url": "", "lat": 25.83256, "lon": -80.19146}, {"property": "7025 NW 7th Ave", "type": "Flex", "int_sqft": "4000", "monthly_rent": "$8,000", "description": "~2,500 SF office + 3 studios + kitchen, freestanding", "notes": "dope music studio, lease to own possible, far north", "availability": "Now", "ceiling": "10'", "buildout": "Full build-out. Music studio w/ shower", "doors": "2 drive-ins; 1 int dock; 2 ext docks", "parking": "5 spaces", "url": "https://www.loopnet.com/Listing/7025-NW-7th-Ave-Miami-FL/37388166/", "lat": 25.84116, "lon": -80.20957}, {"property": "1251 NW 36th St", "type": "Office/Retail", "int_sqft": "6500", "monthly_rent": "$8,667", "description": "4,500 SF 1st floor + 2,000 SF 2nd floor office", "notes": "Value play if landlord delivers repairs", "availability": "Now", "ceiling": "12'", "buildout": "Shell / renovation needed, corner lot", "doors": "2 drive-in bays", "parking": "20 spaces gated", "url": "https://www.loopnet.com/Listing/1251-NW-36th-St-Miami-FL/32519434/", "lat": 25.80874, "lon": -80.21832}, {"property": "300 NW 54th St", "type": "Industrial / Mixed-Use", "int_sqft": "5148", "monthly_rent": "$9,009", "description": "3,298 SF industrial + 1,300 SF apt + 550 SF storage", "notes": "corner lot, apartment, limited parking", "availability": "Now", "ceiling": "9'", "buildout": "mixed use, 1300 sqft apt upstairs", "doors": "Grade-level overhead door", "parking": "3 spaces", "url": "https://www.loopnet.com/Listing/300-NW-54th-St-Miami-FL/34478331/", "lat": 25.82404, "lon": -80.20187}, {"property": "529 W Flagler St", "type": "Office", "int_sqft": "9340", "monthly_rent": "$9,340", "description": "14 offices, 4 rooms, kitchen, 4 bth, Freestanding", "notes": "Best HQ/office, rate is all inclusive", "availability": "Now", "ceiling": "10'", "buildout": "Full build-out", "doors": "no drive-in", "parking": "30+ spaces gated", "url": "https://www.loopnet.com/Listing/529-W-Flagler-St-Miami-FL/37439964/", "lat": 25.77307, "lon": -80.20471}, {"property": "129 N Miami Ave", "type": "Office/Retail/Showroom", "int_sqft": "4800", "monthly_rent": "$10,000", "description": "showroom 1st floor, offices 2nd floor", "notes": "best premium look, rooftop access", "availability": "Now", "ceiling": "10'", "buildout": "Full build-out, polished look", "doors": "no drive-in", "parking": "street only", "url": "https://www.loopnet.com/Listing/129-N-Miami-Ave-Miami-FL/35384186/", "lat": 25.77506, "lon": -80.19407}, {"property": "702 NW 5th Ave", "type": "Flex", "int_sqft": "6431", "monthly_rent": "$10,718", "description": "freestanding corner warehouse", "notes": "Top Miami turnkey option, rate is all inclusive", "availability": "Now", "ceiling": "12'", "buildout": "full bar, cyc wall, turnkey, shower", "doors": "no drive-in", "parking": "street only", "url": "https://www.crexi.com/lease/properties/1048546/florida-river-district-flex-warehouse", "lat": 25.78127, "lon": -80.20547}]</script>
+<script id="atlanta-data" type="application/json">[{"property": "990 Edgewood Ave NE", "type": "Office/Retail", "int_sqft": "2,184", "monthly_rent": "$2,548", "description": "\"The Shop\". Historic Inman Park shop space with landscaped yard and private courtyard. 3 private offices", "notes": "Very cool BeltLine/Inman Park. Retail warehouse. Kitchenette", "availability": "Now", "ceiling": "12'", "buildout": "Full Build-Out", "doors": "1 drive-in", "parking": "limited. Street only", "url": "https://www.loopnet.com/Listing/990-Edgewood-Ave-NE-Atlanta-GA/32956600/", "lat": 33.7548, "lon": -84.3511}, {"property": "24 E Andrews Dr NW", "type": "Office / Retail", "int_sqft": "2,500", "monthly_rent": "$3,333", "description": "Mostly open layout in walkable Buckhead, flexible basement suite with full kitchen", "notes": "Good inexpensive Buckhead presence option, but not warehouse-forward", "availability": "Now", "ceiling": "9'-10'", "buildout": "Partial Build-Out", "doors": "no drive-in", "parking": "3 spaces + street", "url": "https://www.loopnet.com/Listing/24-E-Andrews-Dr-NW-Atlanta-GA/35548920/", "lat": 33.8413, "lon": -84.3804}, {"property": "299 Peters St", "type": "Office/Retail", "int_sqft": "2,000", "monthly_rent": "$3,500", "description": "Two levels of functional space, open concept + 3 offices. has kitchenette and shower. Privacy gate", "notes": "Strong Castleberry Hill value play for showroom/office/retail use", "availability": "Now", "ceiling": "NA", "buildout": "Partial Build-Out", "doors": "no drive-in", "parking": "NA", "url": "https://www.loopnet.com/Listing/299-Peters-St-Atlanta-GA/33277074/", "lat": 33.7527, "lon": -84.401}, {"property": "644 Antone St NW Suite 10", "type": "Flex", "int_sqft": "2600", "monthly_rent": "$4,225", "description": "3 private offices + reception + conference room + break room + ~1,300 SF warehouse", "notes": "solid option with potential", "availability": "Now", "ceiling": "10'+", "buildout": "Full Build-Out. Polished, modern", "doors": "1 drive-in", "parking": "parking on-site", "url": "https://www.loopnet.com/Listing/644-Antone-St-NW-Atlanta-GA/36837578/", "lat": 33.8017, "lon": -84.4253}, {"property": "552 West Atlanta St SE. Suite C", "type": "Industrial", "int_sqft": "5,300", "monthly_rent": "$4,593", "description": "3000 SF warehouse + 1350 SF for 4 offices + 900 SF mezanine. Break room", "notes": "Best low-cost larger industrial option with high clear height. Rent is all inclusive", "availability": "Now", "ceiling": "23'", "buildout": "Partial Build-Out", "doors": "1 drive-in; 1 dock", "parking": "parking on-site", "url": "https://www.loopnet.com/Listing/552-West-Atlanta-St-SE-Marietta-GA/39764433/", "lat": 33.9444, "lon": -84.5397}, {"property": "3580 Pierce Dr NE. Suite 140", "type": "Office", "int_sqft": "2,850", "monthly_rent": "$4,750", "description": "Mostly open office floor plan, renovated. Kitchen, mezanine, very high ceiling", "notes": "Solid option. Polished finish. Space to build cyc wall", "availability": "Now", "ceiling": "15'+", "buildout": "Full Build-Out", "doors": "no drive-in", "parking": "parking on-site", "url": "https://www.loopnet.com/Listing/3580-Pierce-Dr-NE-Chamblee-GA/23011769/", "lat": 33.8962, "lon": -84.2948}, {"property": "1816 Briarwood Industrial Ct NE", "type": "Industrial", "int_sqft": "5,000", "monthly_rent": "$5,208", "description": "1,700 SF office + warehouse, recently renovated, open office floor plan", "notes": "Compelling Brookhaven warehouse-office blend with renovation already done", "availability": "Now", "ceiling": "17'", "buildout": "Excellent condition / renovated", "doors": "1 drive-in; 1 dock", "parking": "13 spaces", "url": "https://www.loopnet.com/Listing/1816-Briarwood-Industrial-Ct-NE-Atlanta-GA/38578762/", "lat": 33.8468, "lon": -84.3095}, {"property": "644 Antone St NW Suite 7", "type": "Flex", "int_sqft": "3100", "monthly_rent": "$5,490", "description": "3 private offices + reception + 2 conference rooms + break room + ~1,300 SF warehouse. Has a cyc wall & loft", "notes": "One of the best ATL hybrid creative/warehouse options in West Midtown", "availability": "Now", "ceiling": "15'", "buildout": "Full Build-Out. Polished, modern", "doors": "no-drive in", "parking": "parking on-site", "url": "https://www.loopnet.com/Listing/644-Antone-St-NW-Atlanta-GA/36837578/", "lat": 33.8014, "lon": -84.4249}, {"property": "1690 Roberts Blvd", "type": "Industrial", "int_sqft": "4,753", "monthly_rent": "$5,545", "description": "Balanced mix of 8 offices office + conference room + break room + warehouse space. 2 stories. Nicely renovated", "notes": "Solid ops space with nice offices + warehouse space", "availability": "Now", "ceiling": "22'", "buildout": "Full Build-Out", "doors": "drive-in + dock door", "parking": "parking on-site", "url": "https://www.loopnet.com/Listing/1690-Roberts-Blvd-Kennesaw-GA/39428464/", "lat": 34.0035, "lon": -84.5969}, {"property": "1417 Mayson St NE", "type": "Office / Creative", "int_sqft": "2,784", "monthly_rent": "$5,800", "description": "Single-tenant studio showroom warehouse + deck. Has cyc wall & shower & offices & conference room & kitchen", "notes": "Very attractive Armour Yards creative option with strong brand feel", "availability": "Now", "ceiling": "12.5'", "buildout": "Full Build-Out", "doors": "no drive-in", "parking": "5 spaces", "url": "https://www.loopnet.com/Listing/1417-Mayson-St-NE-Atlanta-GA/39785436/", "lat": 33.8112, "lon": -84.3842}, {"property": "3136 Clairmont Rd NE", "type": "Office", "int_sqft": "4561", "monthly_rent": "$6,081", "description": "Simple office floorplate; lease or purchase possible. 2 stories, very house-like. Has shower, balcony, yard", "notes": "solidoffice option, but weaker as a production environment", "availability": "Now", "ceiling": "NA", "buildout": "Full Build-Out", "doors": "no drive-in", "parking": "8 spaces", "url": "https://www.loopnet.com/Listing/3136-Clairmont-Rd-NE-Brookhaven-GA/38994594/", "lat": 33.8797, "lon": -84.3072}, {"property": "290 Simpson St", "type": "Flex", "int_sqft": "3,113", "monthly_rent": "$6,226", "description": "2,368 SF main floor + 745 SF loft, exposed brick, skylights, garage door. Great downtown location. Entire building", "notes": "Very cool Downtown flex/creative option with real character and mixed-use flexibility", "availability": "Now", "ceiling": "vaulted", "buildout": "Full Build-Out", "doors": "1 drive-in / large garage door", "parking": "street only", "url": "https://www.loopnet.com/Listing/290-Simpson-St-Atlanta-GA/35960606/", "lat": 33.765, "lon": -84.4029}, {"property": "8601 Dunwoody Pl", "type": "Office / Flex", "int_sqft": "5,022", "monthly_rent": "$6,278", "description": "6 private offices, 2 conference rooms, reception, break room", "notes": "Functional perimeter office/flex option with excellent access, but not a real warehouse", "availability": "Now", "ceiling": "NA", "buildout": "Full Build-Out", "doors": "no drive-in", "parking": "20+ spaces", "url": "https://www.loopnet.com/Listing/8601-Dunwoody-Pl-Sandy-Springs-GA/38227391/", "lat": 33.9991, "lon": -84.3433}, {"property": "1251 Marietta Blvd NW", "type": "Industrial", "int_sqft": "5,269", "monthly_rent": "$7,025", "description": "2,820 SF office + 2,449 SF warehouse, 7 offices + reception + conference. Entire building. Polished renovation", "notes": "Strong West Midtown warehouse-office mix with 100% AC and real loading utility", "availability": "Now", "ceiling": "18'", "buildout": "Full Build-Out", "doors": "1 drive-in; 1 dock", "parking": "15+ spaces", "url": "https://www.loopnet.com/Listing/1251-Marietta-Blvd-NW-Atlanta-GA/32955573/", "lat": 33.8156, "lon": -84.4292}, {"property": "949 Image Ave NW", "type": "Office / Creative", "int_sqft": "5,500", "monthly_rent": "$7,219", "description": "Former recording studio with up to 3 sound rooms", "notes": "Interesting West Midtown creative conversion play if pricing/renovation math works", "availability": "Now", "ceiling": "NA", "buildout": "Needs renovation", "doors": "possible drive-in", "parking": "18 spaces / 12 secured", "url": "https://www.loopnet.com/Listing/949-Image-Ave-NW-Atlanta-GA/39871950/", "lat": 33.7983, "lon": -84.4312}, {"property": "2550 Collins Springs Dr SE. Unit B", "type": "Industrial", "int_sqft": "6,653", "monthly_rent": "$7,762", "description": "2,441 SF office + warehouse, central air/heating", "notes": "Strong Smyrna warehouse option with loading, AC, and sizable office component", "availability": "Now", "ceiling": "18'", "buildout": "Partial Build-Out", "doors": "1 drive-in; 1 loading dock", "parking": "8 spaces", "url": "https://www.loopnet.com/Listing/2550-Collins-Springs-Dr-SE-Smyrna-GA/35313206/", "lat": 33.835809, "lon": -84.480334}, {"property": "500 Bishop St", "type": "Office / Creative", "int_sqft": "3,600", "monthly_rent": "$9,504", "description": "Former pro recording studio with sound-treated rooms, open studio areas, private suites. Has shower", "notes": "Very appealing creative/studio environment in Bishop Station, but expensive", "availability": "Now", "ceiling": "high", "buildout": "Partial Build-Out", "doors": "no drive-in", "parking": "NA", "url": "https://www.loopnet.com/Listing/500-Bishop-St-Atlanta-GA/33858382/", "lat": 33.7916, "lon": -84.4124}, {"property": "590 Piedmont Ave NE", "type": "Retail / Office", "int_sqft": "4,728", "monthly_rent": "$10,500", "description": "2,775 SF office space, single-tenant building, retail shop, adjacent parking lot included", "notes": "Strong Midtown / Piedmont brand-forward option, but expensive for non-warehouse use", "availability": "Now", "ceiling": "NA", "buildout": "Full Build-Out", "doors": "side load", "parking": "fenced + open lot", "url": "https://www.loopnet.com/Listing/590-Piedmont-Ave-NE-Atlanta-GA/21166858/", "lat": 33.7716, "lon": -84.379}]</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function() {
+  const markets = {
+    miami: {
+      title: 'Miami Commercial Options',
+      subtitle: 'A client-facing comparison of viable Miami spaces for studio, warehouse, showroom, and hybrid operations. Click any property on the right or any map pin to review the full summary.',
+      kicker: 'South Florida Property Map',
+      overlay: 'Each pin reflects one property from the reviewed spreadsheet. Popups show interior square footage, monthly rent, description, notes, and direct listing access.',
+      zoomFloor: 13,
+      records: JSON.parse(document.getElementById('miami-data').textContent)
+    },
+    atlanta: {
+      title: 'Atlanta Commercial Options',
+      subtitle: 'A client-facing comparison of viable Atlanta spaces for studio, warehouse, showroom, creative office, and hybrid operations. Click any property on the right or any map pin to review the full summary.',
+      kicker: 'Atlanta Property Map',
+      overlay: 'Each pin reflects one property from the reviewed spreadsheet. Popups show interior square footage, monthly rent, description, notes, and direct listing access.',
+      zoomFloor: 12,
+      records: JSON.parse(document.getElementById('atlanta-data').textContent)
+    }
+  };
+
+  const pageTitle = document.getElementById('pageTitle');
+  const pageSubtitle = document.getElementById('pageSubtitle');
+  const overlayKicker = document.getElementById('overlayKicker');
+  const overlayText = document.getElementById('overlayText');
+  const propertyList = document.getElementById('propertyList');
+
+  const map = L.map('map', { zoomControl:true, scrollWheelZoom:true });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 20
+  }).addTo(map);
+
+  let currentMarket = 'miami';
+  let activeMarkers = [];
+  let activeItems = [];
+
+  function esc(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function popupHTML(r) {
+    return `
+      <div class="popup-title">${esc(r.property)}</div>
+      <div class="popup-row"><b>Type:</b> ${esc(r.type)}</div>
+      <div class="popup-row"><b>Int. SF:</b> ${esc(r.int_sqft)}</div>
+      <div class="popup-row"><b>Rent / Month:</b> ${esc(r.monthly_rent)}</div>
+      <div class="popup-row"><b>Description:</b> ${esc(r.description)}</div>
+      <div class="popup-row"><b>Notes:</b> ${esc(r.notes)}</div>
+      <div class="popup-row"><b>Availability:</b> ${esc(r.availability)}</div>
+      <div class="popup-row"><b>Ceiling:</b> ${esc(r.ceiling)} &nbsp;&nbsp; <b>Parking:</b> ${esc(r.parking)}</div>
+      <div class="popup-row"><b>Build-Out:</b> ${esc(r.buildout)}</div>
+      <div class="popup-row"><b>Doors/Bays:</b> ${esc(r.doors)}</div>
+      ${r.url ? `<a class="popup-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Open listing</a>` : ''}
+    `;
+  }
+
+  function clearMarket() {
+    activeMarkers.forEach(m => map.removeLayer(m));
+    activeMarkers = [];
+    activeItems = [];
+    propertyList.innerHTML = '';
+  }
+
+  function setActive(idx) {
+    activeItems.forEach((el, i) => el.classList.toggle('active', i === idx));
+  }
+
+  function renderMarket(name) {
+    currentMarket = name;
+    const cfg = markets[name];
+    pageTitle.textContent = cfg.title;
+    pageSubtitle.textContent = cfg.subtitle;
+    overlayKicker.textContent = cfg.kicker;
+    overlayText.textContent = cfg.overlay;
+
+    document.getElementById('tab-miami').classList.toggle('active', name === 'miami');
+    document.getElementById('tab-atlanta').classList.toggle('active', name === 'atlanta');
+
+    clearMarket();
+
+    const bounds = [];
+    cfg.records.forEach((r, idx) => {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="marker-pin">${idx + 1}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -8]
+      });
+      const marker = L.marker([r.lat, r.lon], {icon}).addTo(map);
+      marker.bindPopup(popupHTML(r), {maxWidth:390});
+      marker.on('click', () => setActive(idx));
+      activeMarkers.push(marker);
+      bounds.push([r.lat, r.lon]);
+
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.innerHTML = `
+        <div class="item-top">
+          <div class="badge">${idx + 1}</div>
+          <div>
+            <div class="item-name">${esc(r.property)}</div>
+            <div class="meta">Type: ${esc(r.type)}<br>Int. SF: ${esc(r.int_sqft)} • Rent / Month: ${esc(r.monthly_rent)}</div>
+            <div class="notes">${esc(r.description)}<br><span style="color:#8f8f8f;">Notes: ${esc(r.notes)}</span></div>
+          </div>
+        </div>
+      `;
+      item.addEventListener('click', () => {
+        map.flyTo([r.lat, r.lon], Math.max(map.getZoom(), cfg.zoomFloor), {duration:0.55});
+        marker.openPopup();
+        setActive(idx);
+      });
+      propertyList.appendChild(item);
+      activeItems.push(item);
+    });
+
+    if (bounds.length) {
+      map.fitBounds(bounds, {padding:[48,48]});
+    }
+    if (activeMarkers.length) {
+      activeMarkers[0].openPopup();
+      setActive(0);
+    }
+  }
+
+  document.getElementById('tab-miami').addEventListener('click', () => renderMarket('miami'));
+  document.getElementById('tab-atlanta').addEventListener('click', () => renderMarket('atlanta'));
+
+  renderMarket('miami');
+})();
+</script>
+</body>
+</html>
